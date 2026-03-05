@@ -2,6 +2,7 @@
 
 .NET Core 10 API with health endpoint for ToDo application.
 
+
 ## Features
 
 - Health endpoint at `/api/health` that returns `true`
