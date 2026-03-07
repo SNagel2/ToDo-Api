@@ -1,54 +1,40 @@
+using ToDo_Backend.Interfaces;
+using ToDo_Backend.Repositories;
+using ToDo_Backend.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// ---------------------------------------------------------------------------
+// Services
+// ---------------------------------------------------------------------------
 builder.Services.AddControllers();
+builder.Services.AddOpenApi();
+
+// Register the in-memory repository as a singleton so state survives the
+// lifetime of the process (across multiple requests).
+builder.Services.AddSingleton<IToDoRepository, InMemoryToDoRepository>();
+builder.Services.AddScoped<IToDoService, ToDoService>();
+
+// ---------------------------------------------------------------------------
+// CORS – allow any origin for demo purposes
+// ---------------------------------------------------------------------------
 builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAngularApp",
-        policy =>
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
-        });
-});
+    options.AddDefaultPolicy(policy =>
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod()));
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ---------------------------------------------------------------------------
+// Middleware pipeline
+// ---------------------------------------------------------------------------
 if (app.Environment.IsDevelopment())
-{
     app.MapOpenApi();
-}
 
-app.UseCors("AllowAngularApp");
 app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
-
+app.UseCors();
+app.UseAuthorization();
 app.MapControllers();
-app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+app.Run();
